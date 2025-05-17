@@ -15,17 +15,16 @@
 
 .. class:: center
 
-    :Название исследуемой задачи: Мое название работы
-    :Тип научной работы: M1P/НИР/CoIS
-    :Автор: Имя Отчество Фамилия
-    :Научный руководитель: степень, Фамилия Имя Отчество
-    :Научный консультант(при наличии): степень, Фамилия Имя Отчество
+    :Название исследуемой задачи: Применение синтетических данных, полученных с помощью генеративной нейросети, для повышения качества моделей детекции
+    :Тип научной работы: BS-Thesis
+    :Автор: Степанов Илья Дмитриевич
+    :Научный руководитель: к.ф-м.н., Грабовой Андрей Валерьевич
+    :Научный консультант(при наличии): Филатов Андрей Викторович
 
 Abstract
 ========
 
-Purus sit amet luctus venenatis lectus magna fringilla. Condimentum id venenatis a condimentum vitae sapien. Auctor neque vitae tempus quam pellentesque nec nam aliquam. Eget egestas purus viverra accumsan in. Nam aliquam sem et tortor. Donec et odio pellentesque diam volutpat commodo. Odio pellentesque diam volutpat commodo sed egestas. Sit amet dictum sit amet justo. Pellentesque sit amet porttitor eget. Imperdiet sed euismod nisi porta lorem mollis aliquam ut. Quis varius quam quisque id diam vel quam elementum. Ornare lectus sit amet est placerat in. Vulputate dignissim suspendisse in est ante. Elit sed vulputate mi sit amet mauris. Egestas sed tempus urna et pharetra pharetra. Viverra tellus in hac habitasse platea dictumst vestibulum rhoncus.
-
+Аугментация данных — важный инструмент современных исследователей в области детекции, позволяющий увеличить объём обучающей выборки. Однако существующие методы ограничены, поскольку не обеспечивают существенного семантического расширения данных. Это может привести к снижению способности моделей обобщать информацию при работе с аугментированными данными. В этой работе предложен новый метод аугментации, основанный на семантической замене объектов на изображениях. Такой подход обеспечивает расширение обучающих выборок и повышает точность детекционных моделей.
 Research publications
 ===============================
 1. 

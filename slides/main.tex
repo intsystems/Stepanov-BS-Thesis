@@ -1,192 +1,392 @@
-\documentclass[10pt,pdf,hyperref={unicode}]{beamer}
-
-\mode<presentation>
-{
-\usetheme{boxes}
+\documentclass{beamer}
 \beamertemplatenavigationsymbolsempty
-
+\usecolortheme{beaver}
+\setbeamertemplate{blocks}[rounded=true, shadow=true]
 \setbeamertemplate{footline}[page number]
-\setbeamersize{text margin left=0.5em, text margin right=0.5em}
-}
-
+%
 \usepackage[utf8]{inputenc}
 \usepackage[english, russian]{babel}
-\usepackage{bm}
+\usepackage{amssymb,amsfonts,amsmath,mathtext}
 \usepackage{multirow}
-\usepackage{ragged2e}
-\usepackage{indentfirst}
-\usepackage{multicol}
+\usepackage{graphicx} % Для масштабирования
 \usepackage{subfig}
-\usepackage{amsmath,amssymb}
-\usepackage{enumerate}
-\usepackage{mathtools}
-\usepackage{comment}
-\usepackage{multicol}
-
-\usepackage[all]{xy}
-
-\usepackage{tikz}
-\usetikzlibrary{positioning,arrows}
-
-\tikzstyle{name} = [parameters]
-\definecolor{name}{rgb}{0.5,0.5,0.5}
-
-\usepackage{caption}
-\captionsetup{skip=0pt,belowskip=0pt}
-
-\newtheorem{rustheorem}{Теорема}
-\newtheorem{russtatement}{Утверждение}
-\newtheorem{rusdefinition}{Определение}
-
-% colors
-\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
-\definecolor{darkcyan}{rgb}{0.0, 0.55, 0.55}
-
-\AtBeginEnvironment{figure}{\setcounter{subfigure}{0}}
-
-\captionsetup[subfloat]{labelformat=empty}
+\usepackage{booktabs}
+\usepackage[all]{xy} % xy package for diagrams
+\usepackage{array}
+\usepackage{multicol}% many columns in slide
+\usepackage{hyperref}% urls
+\usepackage{hhline}%tables
+% Your figures are here:
+\graphicspath{ {fig/} {../fig/} }
 
 %----------------------------------------------------------------------------------------------------------
+\title[\hbox to 56mm{Генерация}]{Применение синтетических данных, полученных с помощью генеративной нейросети, для повышения качества моделей детекции}
+\author[N.\,P.~Ivkin]{Степанов И.Д., Дорин Д.Д., Игнашин И.Н., Изместьева У.А.}
+\institute{Московский физико-технический институт}
+\date{\footnotesize
+\par\smallskip\emph{Научный руководитель:} к.ф-м.н. Грабовой Андрей Валерьевич
+\par\smallskip\emph{Консультант:} Филатов Андрей Викторович
+\par\bigskip\small 2025}
 
-\title[Пример слайдов по работе]{Пример слайдов по работе \\ курса}
-\author{И.\,О.\,Фамилия}
-
-\institute[]{Московский физико-технический институт}
-\date[2022]{\small 10\;февраля\;2022\,г.}
-
-%---------------------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------------------
 \begin{document}
-
+%----------------------------------------------------------------------------------------------------------
 \begin{frame}
-\titlepage
+\thispagestyle{empty}
+\maketitle
+\end{frame}
+%-----------------------------------------------------------------------------------------------------
+\begin{frame}{Цель исследования}
+
+
+\textbf{Задача} 
+
+Создание высококачественных аугментаций с использованием генеративной нейросети для повышения качества моделей детекции.
+
+\vspace{5pt} % добавляем дополнительное пространство
+
+\textbf{Проблема} 
+
+Существующие методы генеративной аугментации обладают рядом недостатков, таких как: невозможность генерировать новые классы объектов, качество аугментаций низкое.
+
+\vspace{5pt} % добавляем дополнительное пространство
+
+\textbf{Цель} 
+
+Создание автоматизированной модели, способной качественно генерировать аугментации и устранять недостатки существующих подходов. Проведение сравнительного анализа аугментаций на датасетах COCO и Pascal VOC с использованием модели детекции, а также анализ влияния компонентов предложенного метода на конечный результат.
+
+\end{frame}
+%------------------------------------------------------------------------------------------
+
+\begin{frame}{Постановка задачи}
+
+% {\small Определим датасет как $ \mathfrak{D}=\{ {x}_{i}: i = 1, \dots, n\}$, ${x}_{i}$ --- изображение. Рассматривается диффузионная модель для аугментации $\epsilon_{\theta}$. Определим функцию потерь:
+% \begin{center}
+%     $\mathcal{L}(\epsilon, \epsilon_{\theta}) = \mathbb{E}_{\epsilon \sim N(0, I), m_i, \tau_i, \tilde{x_i}, t} \|\epsilon - \epsilon_{\theta}(x^t_i, m_i,\tau_i, \tilde{x_i}, t)\|^2,$
+% \end{center}
+% где $x^t_i$ -- зашумленное изображение на шаге $t$, $m_i$ -- сегментационная маска данного изображения, $\tau_i$ -- текстовая подсказка данного изображения,
+% $\tilde{x_i}$ = $(1 - m_i) \ \odot x_i$, $t \in [0, T]$ -- шаг диффузионного процесса. Для получения масок и текстовых подсказок мы используем модели сегментации и "image-to-text".
+% % Модифицированный датасет после аугментаций определим как $\tilde{\mathfrak{D}} = \{ \phi_{\theta}({x}_{i}): i = 1, \dots, n\}$, ${x}_{i}$ --- изображение. Требуется оценить качество синтетических данных $\tilde{\mathfrak{D}}$, используя модели детекции.
+% }
+
+% {Рассмотрим генеративную аугментацию как соответствие:
+% \begin{center}
+%     $f_{\theta}: X \to Y,$
+% \end{center}
+% где:
+
+% \begin{itemize}
+%     \item $X=\{ x_{i}: i = 1, \dots, n\}$ — пространство входных изображений;
+%     \item $Y=\{ y_{i}: i = 1, \dots, n\}$ — пространство аугментированных изображений;
+%     \item $f_{\theta}$ — генеративная модель с параметрами $\theta$, преобразующая входное изображение $x_i$ в аугментированное изображение $y_i$.
+% \end{itemize}
+
+Рассмотрим модель детекции  $f_{\theta}$ как отображение:
+\[
+f_{\theta}: X \to \hat{T},
+\]
+где $X$ — пространство изображений, $\hat{T}$ — пространство соответствующих разметок, содержащих координаты ограничивающих рамок и классы объектов, предсказанных моделью. Также определим $T$ — истинное пространство разметок изображений из $X$.
+
+% }
+
+\end{frame}
+%------------------------------------------------------------------------------------------
+
+\begin{frame}{Постановка задачи}
+
+
+Определим функцию потерь:
+\begin{align*}
+\mathcal{L}(\theta) &= \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} 
+\left[ (x^{gt}_i - \hat{x}_i)^2 + (y^{gt}_i - \hat{y}_i)^2 \right] \notag \\
+&+ \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} 
+\left[ (\sqrt{w^{gt}_i} - \sqrt{\hat{w}_i})^2 + (\sqrt{h^{gt}_i} - \sqrt{\hat{h}_i})^2 \right] \notag \\
+&+ \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} (\hat{C}_i - C_i)^2 
++ \lambda_{\text{noobj}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{noobj}} (\hat{C}_i - C_i)^2 \notag \\
+&+ \sum_{i=1}^{S^2} \textbf{I}_{i}^{\text{obj}} \sum_{c \in \mathcal{C}} (\hat{p}_i(c) - p_i(c))^2,
+\end{align*}
+
+где 
+$S \times S$ — размер сетки, на которую разбивается изображение,  
+
 \end{frame}
 
-%----------------------------------------------------------------------------------------------------------
-\section{Слайд об исследованиях}
-\begin{frame}{Слайд об исследованиях}
-\bigskip
-Исследуется проблема \ldots.
-\begin{block}{Цель исследования~---}
-предложить метод \ldots.
-\end{block}
-\begin{block}{Требуется предложить}
-\justifying
-\begin{enumerate}[1)]
-\item метод \ldots,
-\item метод \ldots,
-\item метод \ldots.
+\begin{frame}{Постановка задачи}
+
+$B$ — количество предсказанных ограничивающих рамок (bounding boxes) в каждой ячейке сетки,  
+$\lambda_{\text{coord}}, \lambda_{\text{noobj}}$ — коэффициенты, регулирующие вклад  в функцию потерь,
+$\textbf{I}_{ij}^{\text{obj}}$ — индикатор наличия объекта в $j$-й рамке $i$-й ячейки,  
+$\textbf{I}_{ij}^{\text{noobj}}$ — индикатор отсутствия объекта в $j$-й рамке $i$-й ячейки,  
+$(x^{gt}_i, y^{gt}_i, w^{gt}_i, h^{gt}_i)$ — координаты центра, ширина и высота истинного ограничивающего прямоугольника,  
+$(\hat{x}_i, \hat{y}_i, \hat{w}_i, \hat{h}_i)$ — предсказанные координаты ограничивающего прямоугольника,  
+$C_i$ и $\hat{C}_i$ — истинная и предсказанная вероятность наличия объекта в ячейке,  \(\mathcal{C}\) — множество классов объектов,
+$p_i(c)$ и $\hat{p}_i(c)$ — истинная и предсказанная вероятность принадлежности объекта классу $c$.
+
+% Пусть $ P_{\text{data}}(x) $ — распределение входных изображений, а $ P_{\text{aug}}(y) $ — распределение аугментированных изображений
+
+% Задача заключается в минимизации дивергенции Кульбака-Лейблера между этими распределениями:
+
+% \begin{center}
+%     $D_{\text{KL}}(P_{\text{aug}}(y) \parallel P_{\text{data}}(x)) \to 0.$
+% \end{center}
+
+\begin{center}
+Решается следующая оптимизационная задача:
+\end{center}\vspace{-1em} 
+
+\[
+\theta^* = \operatorname*{arg\,min}_{\theta} \mathcal{L}(\theta)
+\]
+
+\end{frame}
+
+\begin{frame}{Функция качества}
+Рассмотрим функцию качества для задачи детекции:
+\begin{center}
+   $\text{mAP}: \hat{T} \times {T} \times [0,1] \to [0,1]$ 
+\end{center}
+Для каждого класса \(c \in \mathcal{C}\) вычисляется Average Precision (AP):
+\[
+AP(c, \tau) = \int_{0}^{1} P_c(r, \tau) \, dr,
+\]
+где \(P_c(r, \tau)\) --- функция точности при полноте \(r\) для класса \(c\), $\tau \in [0,1]$.
+\[
+\text{mAP} = \frac{1}{|\mathcal{C}|} \sum_{c \in \mathcal{C}} AP(c, \tau).
+\]
+\end{frame}
+\begin{frame}{Функция качества}
+Рассмотрим функцию \text{IoU} (Intersection over Union):
+\begin{center}
+   $\text{IoU}: \hat{T} \times {T} \to [0,1]$,
+\end{center}
+которая рассчитывается по формуле:
+\[
+\text{IoU} = \frac{|B_p \cap B_{gt}|}{|B_p \cup B_{gt}|},
+\]
+где \(B_p\) --- предсказанный ограничивающий прямоугольник (bounding box), \(B_{gt}\) --- истинный ограничивающий прямоугольник. Рассмотрим функцию следующего вида:
+\[
+\text{mAP}^{*}: \hat{T} \times {T} \to [0,1]
+\]
+\[
+\text{mAP}^{*} = \frac{1}{|\mathcal{C}|} \sum_{c \in \mathcal{C}} \left( \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} AP(c, \tau) \right),
+\quad \text{где } \mathcal{T} = \{0.50, 0.55, \dots, 0.95\}
+\]
+
+\end{frame}
+
+\begin{frame}{Генеративная аугментация}
+
+Рассмотрим модель генеративной аугментации как композицию отображений:
+
+\begin{center}
+
+$ r_{\gamma} \circ h_{\beta} \circ g_{\alpha} \circ f_{\psi}: X \times [0,1] \to Y \cup \varnothing$
+
+
+\end{center}
+\begin{center}
+$ f_{\psi}: X \times [0,1] \to M \times L \times [0,1]$
+\end{center}
+\begin{center}
+$ g_{\alpha}: X \times L \to P$
+\end{center}
+\begin{center}
+$ h_{\beta}: X \times M \times P \to Y$
+
+\end{center}
+\begin{center}
+$ r_{\gamma}: Y \times M \times L \times [0,1] \to Y \cup \varnothing,$
+
+\end{center}
+% \begin{center}
+% $ f_{\psi}: X \to M \times L$
+% \end{center}
+% \begin{center}
+% $ g_{\alpha}: X \times L \to P$
+% \end{center}
+% \begin{center}
+% $ h_{\beta}: X \times M \times P \to Y$
+
+% \end{center}
+% \begin{center}
+% $ r_{\gamma}: Y \times M \times P \to \{0 , 1\}$
+
+% \end{center}
+
+{$X$ — пространство исходных изображений,  
+$Y$ — пространство аугментированных изображений,
+}
+
+
+\end{frame}
+
+\begin{frame}{Генеративная аугментация}
+
+
+{$f_{\psi}$ — модель детекции объекта, который будем аугментировать, $g_{\alpha}$ — модель расширения текстового запроса для аугментации нового объекта, $h_{\beta}$ — модель генерации нового объекта, $r_{\gamma}$ — модель фильтрации некачественных генераций, где $M$ — пространство бинарных масок объектов исходных изображений,  
+$L$ — пространство классов объектов исходных изображений, $P$ — пространство расширенных текстовых запросов для аугментации объекта.
+}
+
+
+\end{frame}
+
+
+
+
+\begin{frame}{Генеративная аугментация}
+
+\textbf{Утверждение 1:}\par
+
+Пусть \( \mathcal{D}_{\text{orig}} = \{(x_i, t_i)\}_{i=1}^{N} \) — исходный датасет, где \( x_i \in X \) — исходные изображения, \( t_i \in T \) — соответствующие разметки, $\mathcal{D}_{\text{orig}} = \mathcal{D}_{\text{val}} \cup \mathcal{D}_{\text{train}}$. Пусть \( \mathcal{D}_{\text{aug}} = \{(x_i^{\text{aug}}, t_i^{\text{aug}})\}_{i=1}^{M} \) — аугментированный датасет, где \( x_i^{\text{aug}} \in Y \) — аугментированные изображения, \( t_i^{\text{aug}} \in T \) — соответствующие разметки. Рассмотрим дивергенцию Кульбака-Лейблера между распределениями аугментированных и исходных данных \[ D_{\mathrm{KL}}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{orig}}\} \parallel \{ x \mid (x, t) \in  \mathcal{D}_{\text{aug}}\}) \approx 0 \] рассмотрим модель детекции $f_{\theta}$, обученную на $\mathcal{D}_{\text{train}}$, также рассмотрим $f_{\phi}$, обученную на $\mathcal{D}_{\text{train}} \cup \mathcal{D}_{\text{aug}}$. Тогда:
+\[
+{\text{mAP}}(f_{\phi}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T) \geq {\text{mAP}}(f_{\theta}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T).
+\]
+
+\end{frame}
+
+%------------------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------------------
+
+\begin{frame}{Эксперимент}
+
+\begin{table}[ht]
+\label{tab:map_comparison}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Size} & \textbf{mAP@50} &  \textbf{mAP}^{*} = \textbf{mAP@50-95} \\
+\hline
+COCO  & 6000 & 0.278 & 0.18 \\
+COCO + COCO augmentations & 6000 + 4500 & \textbf{0.307} & \textbf{0.2} \\
+\hline
+VOC  & 5717 & 0.644 & 0.461 \\
+VOC + VOC augmentations & 5717 + 4150 & \textbf{0.664} & \textbf{0.475} \\
+\hline
+\end{tabular}
+}
+\caption{Сравнение показателей mAP для модели детекции YOLO, обученной в течение 500 эпох, с порогом фильтрации аугментаций 0.2.}
+\end{table}
+
+
+\end{frame}
+
+\begin{frame}{Исследование влияния компонент}
+
+\textbf{Утверждение 2:}\par
+
+В условиях предыдущего утверждения рассмотрим \( \mathcal{D'}_{\text{aug}} = \{(x_i^{\text{aug}'}, t_i^{\text{aug}'})\}_{i=1}^{M} \) — аугментированный датасет, где \( x_i^{\text{aug}'} \in Y'\) — аугментированные изображения, \( t_i^{\text{aug}'} \in T \) — соответствующие разметки. $Y' \subseteq Y$ — пространство аугментированных изображений, сгенерированных моделью следующего вида:
+
+\begin{center}
+$ r_{\gamma} \circ h_{\beta}|_{L} \circ f_{\psi}: X \times [0,1] \to Y' \cup \varnothing$
+\end{center}
+
+
+Рассмотрим модель детекции $f_{\eta}$, обученную на $\mathcal{D'}_{\text{aug}} \cup \mathcal{D}_{\text{train}}$, также рассмотрим $f_{\phi}$, обученную на $\mathcal{D}_{\text{aug}} \cup \mathcal{D}_{\text{train}}$. Тогда:
+\[
+{\text{mAP}}(f_{\phi}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T) \geq {\text{mAP}}(f_{\eta}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T).
+\]
+
+\end{frame}
+
+\begin{frame}{Эксперимент}
+
+\begin{table}[ht]
+\label{tab:map_comparison}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Size} & \textbf{mAP@50} & \textbf{mAP@50-95} \\
+\hline
+COCO + COCO augmentations without expanded prompt   & 6000 + 4500 & 
+0.288 & 0.186 \\
+COCO + COCO augmentations & 6000 + 4500 & \textbf{0.307} & \textbf{0.2} \\
+\hline
+VOC + VOC augmentations without expanded prompt  & 5717 + 4150 & 0.663 & 0.474 \\
+VOC + VOC augmentations & 5717 + 4150 & \textbf{0.664} & \textbf{0.475} \\
+\hline
+\end{tabular}
+}
+\caption{Сравнение показателей mAP для модели детекции YOLO, обученной в течение 500 эпох, с порогом фильтрации аугментаций 0.2.}
+\end{table}
+
+
+\end{frame}
+
+\begin{frame}{Исследование влияния компонент}
+
+\textbf{Утверждение 3:}\par
+
+В условиях утверждения 1 рассмотрим $\mathcal{D''}_{\text{aug}} = \{(x_i^{\text{aug}''}, t_i^{\text{aug}''})\}_{i=1}^{M} $ — аугментированный датасет, где \( x_i^{\text{aug}''} \in Y''\) — аугментированные изображения пространства $Y'' \supseteq Y$, \( t_i^{\text{aug}''} \in T \) — соответствующие разметки. Изображения получены генеративной моделью следующего вида:
+
+\begin{center}
+$ h_{\beta} \circ g_{\alpha} \circ f_{\psi}: X \to Y''$
+\end{center}
+
+
+Рассмотрим модель детекции $f_{\omega}$, обученную на $\mathcal{D''}_{\text{aug}} \cup \mathcal{D}_{\text{train}}$, также рассмотрим $f_{\phi}$, обученную на $\mathcal{D}_{\text{aug}} \cup \mathcal{D}_{\text{train}}$. Тогда:
+\[
+{\text{mAP}}(f_{\phi}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T) \geq {\text{mAP}}(f_{\omega}(\{ x \mid (x, t) \in  \mathcal{D}_{\text{val}}\}, T).
+\]
+
+\end{frame}
+
+\begin{frame}{Эксперимент}
+
+\begin{table}[ht]
+\label{tab:map_comparison}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Size} & \textbf{mAP@50} & \textbf{mAP@50-95} \\
+\hline
+COCO + COCO augmentations without filtration model   & 6000 + 4500 & 
+0.287 & 0.185 \\
+COCO + COCO augmentations & 6000 + 4500 & \textbf{0.307} & \textbf{0.2} \\
+\hline
+VOC + VOC augmentations without filtration model  & 5717 + 4150 & 0.644 & 0.46 \\
+VOC + VOC augmentations & 5717 + 4150 & \textbf{0.664} & \textbf{0.475} \\
+\hline
+\end{tabular}
+}
+\caption{Сравнение показателей mAP для модели детекции YOLO, обученной в течение 500 эпох, с порогом фильтрации аугментаций 0.2.}
+\end{table}
+
+\begin{table}[ht]
+\label{tab:map_comparison}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Dataset} & \textbf{Size} & \textbf{mAP@50} & \textbf{mAP@50-95} \\
+\hline
+PowerPaint &\multirow{2}{*}{COCO + COCO augmentations}  &  \multirow{2}{*}{6500 + 1500} & 0.287 & 0.182 \\
+Our        &                       & & \textbf{0.295} & \textbf{0.188} \\
+\hline
+PowerPaint & \multirow{2}{*}{VOC + VOC augmentations}  &  \multirow{2}{*}{6800 + 1800} & 0.673 &  0.48 \\
+ Our        &                       &  & \textbf{0.675} & \textbf{0.49} \\
+\hline
+\end{tabular}
+}
+\caption{Сравнение показателей mAP для модели детекции YOLO, обученной в течение 500 эпох, с порогом фильтрации аугментаций 0.23.}
+\end{table}
+
+
+
+\end{frame}
+\begin{frame}{Выносится на защиту}
+
+\begin{enumerate}
+    \item Предложен автоматизированный подход к созданию аугментированных изображений.
+    \item Проведены эксперименты, демонстрирующие влияние предложенного метода на качество работы модели детекции, а также выполнено сравнение с существующим подходом.
+    \item Также проведён анализ влияния отдельных компонентов нашего метода на итоговое значение функции качества.
 \end{enumerate}
-\end{block}
-\begin{block}{Решение}
-Для \ldots.
-\end{block}
-\end{frame}
 
-%---------------------------------------------------------------------------------------------------------
-\section{Постановка задачи \ldots}
-\begin{frame}{Постановка задачи \ldots}
-Заданы
-\begin{enumerate}[1)]
-    \item признаки \ldots,
-    \item целевая переменная \ldots,
-    \item \ldots.
-\end{enumerate}
-
-\ldots
-
-\bigskip
-
-Требуется выбрать модель \ldots из множества
-\[
-	\mathfrak{G} = \left\{\mathbf{g}| \mathbf{g}:\mathbb{R}^{n} \to \mathbb{Y}^\prime\right\}.
-\]
-Оптимизационная задача \ldots:
-\[
-	\mathbf{g} = \arg\min_{\mathbf{g} \in \mathfrak{G}} \mathcal{L}\bigr(\ldots\bigr),
-\]
-где $\mathcal{L}$~--- функция ошибки.
-
-\bigskip
-\footnotetext[1]{\textit{Lopez-Paz D., Bottou L., Scholkopf B., Vapnik V.} Unifying distillation and privileged information // ICLR, 2016.}
-\footnotetext[2]{\textit{Hinton G., Vinyals O., Dean J.} Distilling the knowledge in a neural network // NIPS, 2015.}
-\end{frame}
-
-%----------------------------------------------------------------------------------------------------------
-\section{Предложенный метод \ldots}
-\begin{frame}{Предложенный метод \ldots}
-~\\[-1mm]
-Заданы
-\begin{enumerate}[1)]
-	\item \ldots,
-	\item \ldots.
-\end{enumerate}
-
-\medskip
-Параметрические семейства:
-\[
-\setlength\abovedisplayskip{0pt}
-\mathfrak{F} = \left\{\mathbf{f}| \mathbf{f} = \text{softmax}\bigr(\mathbf{v}\bigr(\mathbf{x}\bigr)/T\bigr), \quad \mathbf{v}: \mathbb{R}^{n} \to \mathbb{R}^K \right\},
-\]
-\[
-\mathfrak{G} = \left\{\mathbf{g}| \mathbf{g} = \text{softmax}\bigr(\mathbf{z}\bigr(\mathbf{x}\bigr)/T\bigr), \quad \mathbf{z}: \mathbb{R}^n \to \mathbb{R}^K \right\},
-\]
-где~\ldots.
-
-\medskip
-Функция ошибки
-\[
-\setlength\abovedisplayskip{0pt}
-\begin{aligned}
-   \mathcal{L}\bigr(\mathbf{g}\bigr) = &-\sum_{i=1}^{m}\underbrace{{\sum_{k=1}^{K}y^k_i\log\mathbf{g}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=1}}}_{\text{исходная функция потерь}}- \sum_{i=1}^{m}\underbrace{{\sum_{k=1}^{K}\mathbf{f}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=T_0}\log\mathbf{g}\bigr(\mathbf{x}_i\bigr)\bigr|_{T=T_0}}}_{\text{слагаемое дистилляции}},
-\end{aligned}
-\setlength\belowdisplayskip{0pt}
-\]
-где~\ldots.
-
-Оптимальная модель выбирается из класса,
-$\hat{\mathbf{g}} = \arg\min\limits_{\mathbf{g} \in \mathfrak{G}_{\text{cl}}} \mathcal{L}\bigr(\mathbf{g}\bigr).$
-\end{frame}
-
-%----------------------------------------------------------------------------------------------------------
-\section{Анализ предложенного метода \ldots}
-\begin{frame}{Анализ предложенного метода \ldots}
-\justifying
-
-На графике показана зависимость значения параметров$w_i$ в зависимости от параметра~$l_1$-регуляризации~$C$.
-\begin{figure}[h!]
-\includegraphics[width=0.45\textwidth]{../figures/log_reg_cs_exp.eps}
-\includegraphics[width=0.45\textwidth]{../figures/log_reg_cs_exp.eps}
-\end{figure}
-
-С увеличением параметра регуляризации~$C$ число ненулевых параметров~$w_i$ уменьшается.
 
 \end{frame}
-
-%----------------------------------------------------------------------------------------------------------
-\section{Выводы}
-\begin{frame}{Выводы}
-\justifying
-	\begin{enumerate}
-	\justifying
-	    \item Предложен \ldots.
-        \item Доказаны теоремы \ldots, 
-        \begin{itemize}
-            \item[---] \ldots,
-            \item[---] \ldots.
-        \end{itemize}
-        \item Предложен метод \ldots
-        \begin{itemize}
-            \item[---] \ldots,
-            \item[---] \ldots.
-        \end{itemize}
-        \item Предложены методы \ldots
-        \begin{itemize}
-            \item[---] \ldots,
-            \item[---] \ldots.
-        \end{itemize}
-        \item Предложена вероятностная интерпретации \ldots.
-	\end{enumerate}
-\end{frame}
-%----------------------------------------------------------------------------------------------------------
-
 \end{document} 

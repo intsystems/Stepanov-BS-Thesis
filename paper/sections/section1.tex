@@ -2,70 +2,327 @@
 \label{sec1}
 Рассмотрим датасет для задачи детекции:
 \[
-\mathcal{D} = \bigl\{(x_i, t_i)\bigr\}_{i=1}^n,
+\mathcal{D}
+=
+\bigl\{
+  (x_i,\,t_i),
+  \;
+  i = 1,\dots,n
+\bigr\},
 \]
-$x_i \in X$ — входное изображение, $X$ — пространство входных изображений
-$t_i \in T$ — соответствующая аннотация, $T$ — пространство соответствующих аннотаций, содержащих координаты ограничивающих рамок и классы объектов
+где $X$ — пространство изображений, $x_i \in X$ — исходное изображение, $T$ — пространство аннотаций отдельных объектов, каждая из которых содержит координаты ограничивающего прямоугольника и метку класса, $\mathcal{F}(T) \subseteq 2^{T}$ --- пространство аннотаций изображений множества $X$, $t_i \in \mathcal{F}(T)$ — множество аннотаций, соответствующих объектам на изображении $x_i$.
 
-Рассмотрим модели детекции YOLO\cite{DBLP:journals/corr/RedmonDGF15}, DETR\cite{DBLP:journals/corr/abs-2005-12872} как отображения $f_{\theta}$,  $g_{\phi}$ :
+
+
+Рассмотрим произвольную модель детекции как отображение:
 \[
-f_{\theta}: X \to \hat{T}, \  \ g_{\phi}: X \to \hat{T},
+D: X \to \mathcal{F}(\hat{T}),
 \]
 
-$\hat{T}$ — пространство соответствующих аннотаций, содержащих координаты ограничивающих рамок и классы объектов, предсказанных моделью.
+где $\hat{T}$ — пространство аннотаций для отдельных объектов, содержащих координаты ограничивающих прямоугольников, классы объектов и уверенность, предсказанных моделью. $\mathcal{F}(\hat{T}) \subseteq 2^{\hat{T}}$ — пространство предсказанных аннотаций изображений множества $X$.
 
-Определим функцию потерь для модели детекции $f_{\theta}$:
+Рассмотрим функцию \text{IoU} (Intersection over Union):
+\begin{center}
+   $\text{IoU}: \hat{T} \times {T} \to [0,1]$,
+\end{center}
+которая рассчитывается по формуле:
+\[
+\text{IoU}(\hat{a}, a) = \frac{|\hat{b} \cap b|}{|\hat{b} \cup b|},
+\]
+где $\hat{a}$ --- предсказанная аннотация для одного объекта, содержащая координаты ограничивающего прямоугольника, класс и уверенность, $a$ --- истинная аннотация для одного объекта, содержащая координаты ограничивающего прямоугольника и класс, \(\hat{b} \in \hat{a} \) --- предсказанный ограничивающий прямоугольник, \(b \in a \) --- истинный ограничивающий прямоугольник.
+
+Рассмотрим функцию \text{GIoU} (Generalized Intersection over Union):
+\begin{center}
+   $\text{GIoU}: \hat{T} \times T \to [-1,\,1]$,
+\end{center}
+которая рассчитывается по формуле:
+\[
+\text{GIoU}(\hat{a}, a) \;=\; \text{IoU}(\hat{a}, a) \;-\; \frac{\bigl\lvert\, \tilde{b} \setminus \bigl( \hat{b} \cup b \bigr)\bigr\rvert}{\lvert \tilde{b} \rvert},
+\]
+где \( \tilde{b} \) --- минимальный по площади ограничивающий прямоугольник, содержащий оба \( \hat{b} \) и \( b \).
+
+\subsection{Функции потерь для задачи детекции}
+Определим функцию потерь для модели детекции YOLO\cite{DBLP:journals/corr/RedmonDGF15} $f_{\theta}$:
 \begin{align*}
-\mathcal{L}_{YOLO}(\theta) &= \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} 
+\mathcal{L}_{YOLO}(\theta) &= \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{K} \textbf{I}_{ij}^{\text{obj}} 
 \left[ (x^{gt}_i - \hat{x}_i)^2 + (y^{gt}_i - \hat{y}_i)^2 \right] \notag \\
-&+ \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} 
+&+ \lambda_{\text{coord}} \sum_{i=1}^{S^2} \sum_{j=1}^{K} \textbf{I}_{ij}^{\text{obj}} 
 \left[ (\sqrt{w^{gt}_i} - \sqrt{\hat{w}_i})^2 + (\sqrt{h^{gt}_i} - \sqrt{\hat{h}_i})^2 \right] \notag \\
-&+ \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{obj}} (\hat{C}_i - C_i)^2 
-+ \lambda_{\text{noobj}} \sum_{i=1}^{S^2} \sum_{j=1}^{B} \textbf{I}_{ij}^{\text{noobj}} (\hat{C}_i - C_i)^2 \notag \\
+&+ \sum_{i=1}^{S^2} \sum_{j=1}^{K} \textbf{I}_{ij}^{\text{obj}} (\hat{C}_i - C_i)^2 
++ \lambda_{\text{noobj}} \sum_{i=1}^{S^2} \sum_{j=1}^{K} \textbf{I}_{ij}^{\text{noobj}} (\hat{C}_i - C_i)^2 \notag \\
 &+ \sum_{i=1}^{S^2} \textbf{I}_{i}^{\text{obj}} \sum_{c \in \mathcal{C}} (\hat{p}_i(c) - p_i(c))^2,
 \end{align*}
 
 где 
-$S \times S$ — размер сетки, на которую разбивается изображение, $B$ — количество предсказанных ограничивающих рамок (bounding boxes) в каждой ячейке сетки,  
+$S \times S$ — размер сетки, на которую разбивается изображение, $K$ — количество предсказанных ограничивающих прямоугольников в каждой ячейке сетки,  
 $\lambda_{\text{coord}}, \lambda_{\text{noobj}}$ — коэффициенты, регулирующие вклад  в функцию потерь,
-$\textbf{I}_{ij}^{\text{obj}}$ — индикатор наличия объекта в $j$-й рамке $i$-й ячейки,  
-$\textbf{I}_{ij}^{\text{noobj}}$ — индикатор отсутствия объекта в $j$-й рамке $i$-й ячейки,  
-$(x^{gt}_i, y^{gt}_i, w^{gt}_i, h^{gt}_i)$ — координаты центра, ширина и высота истинного ограничивающего прямоугольника,  
-$(\hat{x}_i, \hat{y}_i, \hat{w}_i, \hat{h}_i)$ — предсказанные координаты ограничивающего прямоугольника,  
-$C_i$ и $\hat{C}_i$ — истинная и предсказанная вероятность наличия объекта в ячейке,  \(\mathcal{C}\) — множество классов объектов,
-$p_i(c)$ и $\hat{p}_i(c)$ — истинная и предсказанная вероятность принадлежности объекта классу $c$.
+$\textbf{I}_{ij}^{\text{obj}}$ — индикатор наличия объекта в $j$-ом прямоугольнике $i$-й ячейки,  
+$\textbf{I}_{ij}^{\text{noobj}}$ — индикатор отсутствия объекта в $j$-ом прямоугольнике $i$-й ячейки,  
+$(x^{gt}_i, y^{gt}_i, w^{gt}_i, h^{gt}_i)$ — координаты центра, ширина и высота истинного ограничивающего прямоугольника для $i$-й ячейки,  
+$(\hat{x}_i, \hat{y}_i, \hat{w}_i, \hat{h}_i)$ — предсказанные координаты ограничивающего прямоугольника для $i$-й ячейки,  
+$C_i$ и $\hat{C}_i$ — истинная и предсказанная вероятность наличия объекта в $i$-й ячейке,  \(\mathcal{C}\) — множество классов объектов,
+$p_i(c)$ и $\hat{p}_i(c)$ — истинная и предсказанная вероятность принадлежности объекта классу $c$ для $i$-й ячейки. 
 
-Определим функцию потерь для модели детекции $g_{\phi}$:
+YOLO представляет собой одностадийный детектор объектов, в котором единый проход по сети обеспечивает одновременное предсказание координат ограничивающих рамок и вероятностей классов для всего изображения. В основе архитектуры лежит глубокая свёрточная сеть, дополненная блоком обнаружения, формирующим выходные данные модели. Ключевым преимуществом YOLO является высокая вычислительная эффективность.
+
+Определим функцию потерь для модели детекции DETR\cite{DBLP:journals/corr/abs-2005-12872} $g_{\phi}$. В данной функции потерь реализуется алгоритм назначений для установления соответствия между предсказанными и истинными аннотациями:
+
 \begin{align*}
-\mathcal{L}_{DETR}(\phi)
-&=  
-   \sum_{i=1}^M \Bigl[
-     -\log \hat p_{\sigma(i)}(c_i)
-     + \lambda_{\ell_1}\,\|b_i - \hat b_{\sigma(i)}\|_1 
-     + \lambda_{\mathrm{giou}}\,(1 - \mathrm{GIoU}(b_i, \hat b_{\sigma(i)}))
-   \Bigr] \notag \\
+\hat\sigma 
+&= \arg\min_{\sigma\in S_N} \sum_{i=1}^N \Bigl[
+-\,\mathbf{I}_{\{c_i\neq\varnothing\}}\;\hat p_{\sigma(i)}(c_i)
++\;\mathbf{I}_{\{c_i\neq\varnothing\}}\;\Bigl(\lambda_{L1}\,\bigl\lVert b_i - \hat b_{\sigma(i)}\bigr\rVert_{1}
+\;
+\\
 &\quad
-+ \sum_{j\,\in\,[N]\setminus\sigma([M])}
-  \Bigl[-\log \hat p_j(c_{\varnothing})\Bigr],
++
+\;\lambda_{\mathrm{giou}}\;\mathrm{GIoU}\bigl(a_i,\;\hat a_{\sigma(i)}\bigr)\Bigr)
+\Bigr],
 \end{align*}
 
-где $M$~--- количество объектов в разметке (ground truth), $N$~--- фиксированное количество предсказаний, выдаваемых моделью, $\hat{p}_j(c)$~--- вероятность, с которой $j$-е предсказание относится к классу $c$, $b_i$~--- ограничивающая рамка (bounding box) $i$-го объекта в разметке,
-  $\hat{b}_j$~--- предсказанная моделью рамка для $j$-го объекта,
-  $c_i$~--- истинная метка класса $i$-го объекта,
-  $c_{\varnothing}$~--- специальный "пустой" класс (фон, no-object), обозначающий отсутствие объекта,
-  $\mathfrak{S}_N$~--- множество всех перестановок $\{1, 2, \dots, N\}$, используемое для поиска наилучшего сопоставления предсказаний с размеченными объектами,
-  $\sigma \in \mathfrak{S}_N$~--- конкретная перестановка, сопоставляющая предсказания $\hat{b}_{\sigma(i)}$ объектам $b_i$.
-  $\lambda_{\ell_1}$~--- вес для L1-компоненты ошибки по координатам рамки,
-  $\lambda_{\mathrm{giou}}$~--- вес для компоненты ошибки на основе обобщённого IoU,
-  $\mathrm{GIoU}(b_i, \hat{b}_{\sigma(i)})$~--- метрика Generalized Intersection-over-Union, измеряющая степень совпадения рамок $b_i$ и $\hat{b}_{\sigma(i)}$.
+где $\hat\sigma$ — оптимальное соответствие между истинными аннотациями и предсказанными,
+$S_N$ — множество инъективных отображений из ${\{1,\dots,\ M\}}$ в ${\{1,\dots, \ N\}}$,
+$M$ — число истинных аннотаций объектов на изображении,
+$N > M$ — число предсказаных аннотаций объектов на изображении,
+$\mathbf{I}_{\{c_i\neq\varnothing\}}$ — индикатор наличия объекта в истинном наборе,
+$c_i$ — истинная метка класса объекта $i$,
+$\hat p_j(c)$ — предсказанная моделью вероятность класса $c$ для аннотации $j$,
+$a_i$ — истинная аннотация объекта $i$, $b_i$ — истинный ограничивающий прямоугольник объекта $i$, 
+$\hat a_j$ — предсказанная аннотация объекта $j$, $\hat b_j$ — предсказанный ограничивающий прямоугольник объекта $j$, $\lambda_{L_1}$ и $\lambda_{\text{giou}}$ — регуляризационные коэффициенты для задачи поиска оптимального соответствия.
 
-  Решаются следующие оптимизационные задачи:
+После нахождения оптимального соответствия $\hat\sigma$ мы можем ввести функцию потерь:
 
+
+\begin{align*}
+\mathcal{L}_{DETR}(\phi)
+&= \sum_{i=1}^N \Bigl[
+-\,\log \hat p_{\hat\sigma_{\phi}(i)}\bigl(c_i\bigr)
+\;+\;
+\mathbf{I}_{\{\,c_i \neq \varnothing\,\}}\Bigl(
+\lambda_{L1}\,\bigl\lVert b_i - \hat b_{\hat\sigma_{\phi}(i)}\bigr\rVert_{1}
+\\
+&\quad
++
+\lambda_{\mathrm{giou}}\;{\mathrm{GIoU}}\bigl(a_i,\;\hat a_{\hat\sigma_{\phi}(i)}\bigr)
+\Bigr)
+\Bigr],
+\end{align*}
+
+DETR представляет собой одностадийный детектор объектов, объединяющий свёрточную сеть и энкодер–декодер на основе трансформера, в котором механизмы самовнимания обеспечивают взаимодействие между всеми частями изображения. В процессе детекции декодер-трансформер генерирует предсказания координат ограничивающих рамок и распределение вероятностей классов. Ключевым преимуществом DETR является эффективный учёт глобального контекста сцены, однако из-за тяжеловесной архитектуры трансформера скорость вывода модели остаётся относительно низкой.
+
+
+
+
+Решаются следующие оптимизационные задачи:
 \[
-\theta^* \;=\; \arg\min_{\theta} \mathcal{L}_{YOLO}(\theta), \ \ \phi^* \;=\; \arg\min_{\phi} \mathcal{L}_{DETR}(\phi), 
+\theta^* = \arg\min_{\theta}\;\mathcal{L}_{YOLO}(\theta),
+\qquad
+\phi^* = \arg\min_{\phi}\;\mathcal{L}_{DETR}(\phi).
 \]
 
 
+\subsection{Функции качества для задачи детекции}
+Определим функции качества для задачи детекции.
+Рассмотрим функцию $\text{mAP}$ (mean Average Precision).
+\begin{center}
+   $\text{mAP}: \{ \hat{T} \}  \times \{ T \} \times [0,1] \to [0,1]$,
+\end{center}
+
+
+
+Для каждого класса \(c \in \mathcal{C}\) вычисляется функция \text{AP} (Average Precision):
+\[
+\text{AP}(c, \tau, t, \hat{t}) = \int_{0}^{1} P_c(r, \tau, t, \hat{t}) \, dr,
+\]
+где \(P_c(r, \tau, t, \hat{t})\) --- функция, задающая кривую Precision–Recall для класса \(c\) при пороге $\tau$, $t \subseteq T$ — множество истинных разметок для класса \(c\), $\hat{t} \subseteq \hat{T}$ — множество предсказанных разметок для класса \(c\).
+\[
+\text{mAP} = \frac{1}{|\mathcal{C}|} \sum_{c \in \mathcal{C}} \text{AP}(c, \tau, t, \hat{t}).
+\]
+
+Рассмотрим функцию $\text{mAP}_{50:95}$:
+\begin{center}
+   $\text{mAP}_{50:95}:  \{ \hat{T} \}  \times \{ T \} \to [0,1]$,
+\end{center}
+
+Определим промежуточную функцию $\text{AP}_{50:95}$ для каждого класса $c$ как усреднение $\text{AP}(c, \tau, t, \hat{t})$ по десяти порогам:
+\[
+\text{AP}_{50:95}(c,\,t,\,\hat{t})
+\;=\;
+\frac{1}{10} 
+\sum_{\tau \in \{0.50,\,0.55,\,\dots,\,0.95\}}
+\text{AP}(c,\,\tau,\,t,\,\hat{t}).
+\]
+
+Функция $\text{mAP}_{50:95}$ усредняет $\text{AP}_{50:95}(c,\,t,\,\hat{t})$ по всем классам:
+\[
+\text{mAP}_{50:95}(t,\,\hat{t})
+\;=\;
+\frac{1}{|\mathcal{C}|}
+\sum_{c \in \mathcal{C}}
+\text{AP}_{50:95}(c,\,t,\,\hat{t}).
+\]
+\subsection{Модель генеративной аугментации}
+
+Рассмотрим модель генеративной аугментации как отображение:
+
+\begin{center}
+
+$
+F_{\psi,\alpha,\beta,\gamma} : X \times [0,1] \;\longrightarrow\; (X_{\text{aug}} \times T_{\text{aug}}) \;\cup\; \{\varnothing\}, 
+$
+
+\end{center}
+\begin{center}
+$ f_{\psi}: X \to M \times L \times T_{\text{aug}}$
+\end{center}
+\begin{center}
+$ g_{\alpha}: X \times L \to P$
+\end{center}
+\begin{center}
+$ h_{\beta}: X \times M \times P \to X_{\text{aug}}$
+
+\end{center}
+\begin{center}
+$ r_{\gamma}: Y \times M \times L \times [0,1] \to \{0,1\}$
+
+\end{center}
+
+% Тут у меня T_{\text{aug}} это пространство аннотаций для отдельных объектов, т е я по сути беру изображение генерю агументацию и выдаю аннотацию ТОЛЬКО для аугментации
+
+где $X$ — пространство исходных изображений,  
+$X_{\text{aug}}$ — пространство аугментированных изображений, $T_{\text{aug}}$ — пространство разметок аугментированных объектов на изображениях, отображение
+$f_{\psi}$ — модель детекции объекта, который будет аугментирован, отображение $g_{\alpha}$ — модель генерации текстового запроса для аугментации нового объекта, отображение $h_{\beta}$ — модель генерации нового объекта, отображение $r_{\gamma}$ — модель фильтрации некачественных генераций, где $M$ — пространство бинарных масок объектов исходных изображений,  $P$ — пространство текстовых запросов для аугментации объекта, 
+$L \subset P$ — пространство классов объектов изображений,
+Число из отрезка $[0,1]$ отвечает за порог для модели фильтрации.
+\[
+F_{\psi,\alpha,\beta,\gamma}(x, \tau) \;=\;
+\begin{cases}
+\bigl(x_\mathrm{aug}, a_\mathrm{aug}), 
+& \text{если } r_{\gamma}\bigl(x_\mathrm{aug},\,m,\,\ell,\,\tau\bigr) = 1,\\[1em]
+\varnothing, 
+& \text{если } r_{\gamma}\bigl(x_\mathrm{aug},\,m,\,\ell,\,\tau\bigr) = 0.
+\end{cases}
+\]
+где 
+$ 
+(m,\,\ell,\, a_\mathrm{aug}) = f_{\psi}(x),  \ x_\mathrm{aug} = h_{\beta}\bigl(x,\,m,\,g_{\alpha}(x, \ell)\bigr)$.
+
+
+\subsection{Ключевые утверждения}
+Пусть $\mathcal{D} = \mathcal{D}_{\text{val}} \ \sqcup \ \mathcal{D}_{\text{train}}$. Рассмотрим аугментированный датасет для задачи детекции:
+\[
+\mathcal{D}_{\text{aug}}(\tau) =
+\left\{
+  (x_i^{\text{aug}},\,t_i^{\text{aug}}), \
+  i = 1,\dots,m
+\right\},
+\]
+
+где $(x_i, t_i) \in \mathcal{D}_{\mathrm{train}}$ — пара «изображение-разметка изображения» из обучающего датасета,
+$(x_i^{\mathrm{aug}}, a_i^{\mathrm{aug}}) = F_{\psi,\alpha,\beta,\gamma}(x_i, \tau)$ — пара «аугментированное изображение-разметка аугментированного объекта»,
+$a_i^* \in t_i$ — аннотация объекта с наибольшей площадью ограничивающего прямоугольника,
+$t_i^{\mathrm{aug}} = \bigl(t_i \setminus \{\,a_i^*\,\}\bigr) \cup \{\,a_i^{\mathrm{aug}}\,\}$ — разметка аугментированного изображения,
+$\tau \in [0,1]$ — пороговое значение для модели фильтрации.
+
+\begin{statement1}
+Пусть $\mathcal{D}_{\text{val}} =
+\left\{
+  (x_i,\,t_i), \
+  i = 1,\dots,k
+\right\}$. Существует такое значение $\tau^*\in[0,1]$, что модели детекции $f_{\theta_1}$ и $g_{\phi_1}$, обученные на объединённом датасете $\mathcal{D}_{\mathrm{aug}}(\tau^*)\sqcup\mathcal{D}_{\mathrm{train}}$,достигают не меньшего значения по функциям $\mathrm{mAP}$ и $\mathrm{mAP}_{50:95}$ на $\mathcal{D}_{\text{val}}$, чем модели $f_{\theta_2}$ и $g_{\phi_2}$, обученные на $\mathcal{D}_{\text{train}}$. То есть:
+\begin{center}
+$\mathrm{mAP}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$,  
+$\mathrm{mAP}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$.
+\end{center}
+\
+\end{statement1}
+
+
+
+Рассмотрим модель генеративной аугментации следующего вида:
+\begin{center}
+$F'_{\psi,\beta,\gamma}(x, \tau) \;=\;
+\begin{cases}
+\bigl(x_{\text{aug}}, a_{\text{aug}}), 
+& \text{если } r_{\gamma}\bigl(x_{\text{aug}},\,m,\,\ell,\,\tau\bigr) = 1,\\[1em]
+\varnothing, 
+& \text{если } r_{\gamma}\bigl(x_{\text{aug}},\,m,\,\ell,\,\tau\bigr) = 0.
+\end{cases}
+$
+\end{center}
+где 
+$ 
+(m,\,\ell,\, a_{\text{aug}}) = f_{\psi}(x),  \ x_{\text{aug}} = h_{\beta}\bigl(x,\,m,\, \ell \bigr)$.
+
+Рассмотрим аугментированный датасет для задачи детекции:
+\[
+\mathcal{D^{'}}_{\text{aug}}(\tau) =
+\left\{
+  (x_i^{\text{aug}},\,t_i^{\text{aug}}), \
+  i = 1,\dots,n
+\right\},
+\]
+
+где $(x_i, t_i) \in \mathcal{D}_{\mathrm{train}}$ — пара «изображение-разметка изображения» из обучающего датасета,
+$(x_i^{\mathrm{aug}}, a_i^{\mathrm{aug}}) = F^{'}_{\psi,\beta,\gamma}(x_i, \tau)$ — пара «аугментированное изображение-разметка аугментированного объекта»,
+$a_i^* \in t_i$ — аннотация объекта с наибольшей площадью ограничивающего прямоугольника,
+$t_i^{\mathrm{aug}} = \bigl(t_i \setminus \{\,a_i^*\,\}\bigr) \cup \{\,a_i^{\mathrm{aug}}\,\}$ — разметка аугментированного изображения,
+$\tau \in [0,1]$ — пороговое значение для модели фильтрации.
+\begin{statement2}
+Пусть $\mathcal{D}_{\text{val}} =
+\left\{
+  (x_i,\,t_i), \
+  i = 1,\dots,k
+\right\}$. Существует такое значение $\tau^*\in[0,1]$, что модели детекции $f_{\theta_1}$ и $g_{\phi_1}$, обученные на объединённом датасете $\mathcal{D}_{\mathrm{aug}}(\tau^*)\sqcup\mathcal{D}_{\mathrm{train}}$,достигают не меньшего значения по функциям $\mathrm{mAP}$ и $\mathrm{mAP}_{50:95}$ на $\mathcal{D}_{\text{val}}$, чем модели $f_{\theta_2}$ и $g_{\phi_2}$, обученные на $\mathcal{D^{'}}_{\text{aug}}(\tau^{*}) \sqcup \mathcal{D}_{\text{train}}$. То есть:
+\begin{center}
+$\mathrm{mAP}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$,  
+$\mathrm{mAP}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$.
+\end{center}
+\
+\end{statement2}
+Аналогично рассмотрим модель генеративной аугментации следующего вида:
+\begin{center}
+$F^{''}_{\psi,\alpha,\beta}(x, \tau) \ = \ (x_{\text{aug}}, a_{\text{aug}})$
+\end{center}
+где 
+$ 
+(m,\,\ell,\, a_{\text{aug}}) = f_{\psi}(x),  \ x_{\text{aug}} = h_{\beta}\bigl(x,\,m,\,g_{\alpha}(x, \ell)\bigr)$.
+
+Рассмотрим аугментированный датасет для задачи детекции:
+\[
+\mathcal{D}^{''}_{\text{aug}}(\tau) =
+\left\{
+  (x_i^{\text{aug}},\,t_i^{\text{aug}}), \
+  i = 1,\dots,n
+\right\},
+\]
+% \;\middle|\;
+%   (x_i^{\text{aug}},\,t_i^{\text{aug}}) \in F_{\psi,\alpha,\beta,\gamma}(x_i, \tau),\;
+%   x_i \in \pi_1(\mathcal{D}_{\text{train}}),\;
+
+где $(x_i, t_i) \in \mathcal{D}_{\mathrm{train}}$ — пара «изображение-разметка изображения» из обучающего датасета,
+$(x_i^{\mathrm{aug}}, a_i^{\mathrm{aug}}) = F^{''}_{\psi,\alpha,\beta}(x_i, \tau)$ — пара «аугментированное изображение-разметка аугментированного объекта»,
+$a_i^* \in t_i$ — аннотация объекта с наибольшей площадью ограничивающего прямоугольника,
+$t_i^{\mathrm{aug}} = \bigl(t_i \setminus \{\,a_i^*\,\}\bigr) \cup \{\,t_{\mathrm{aug}}\,\}$ — разметка аугментированного изображения,
+$\tau \in [0,1]$ — пороговое значение для модели фильтрации.
+\begin{statement3}
+Пусть $\mathcal{D}_{\text{val}} =
+\left\{
+  (x_i,\,t_i), \
+  i = 1,\dots,k
+\right\}$. Существует такое значение $\tau^*\in[0,1]$, что модели детекции $f_{\theta_1}$ и $g_{\phi_1}$, обученные на объединённом датасете $\mathcal{D}_{\mathrm{aug}}(\tau^*)\sqcup\mathcal{D}_{\mathrm{train}}$,достигают не меньшего значения по функциям $\mathrm{mAP}$ и $\mathrm{mAP}_{50:95}$ на $\mathcal{D}_{\text{val}}$, чем модели $f_{\theta_2}$ и $g_{\phi_2}$, обученные на $\mathcal{D^{''}}_{\text{aug}}(\tau^{*}) \sqcup \mathcal{D}_{\text{train}}$. То есть:
+\begin{center}
+$\mathrm{mAP}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{f_{\theta_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$,  
+$\mathrm{mAP}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)\ge\mathrm{mAP}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k,0.5\bigr)$,  
+$\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_1}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)\ge\mathrm{mAP}_{50:95}\bigl(\{g_{\phi_2}(x_i)\}_{i=1}^k,\{t_i\}_{i=1}^k\bigr)$.
+\end{center}
+\
+\end{statement3}
 
 
 

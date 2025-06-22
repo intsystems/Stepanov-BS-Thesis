@@ -5,13 +5,15 @@
 
 1. Клонируйте репозиторий, установите окружение, скачайте нужные зависимости и веса:
 ```bash
-git clone https://github.com/ILIAHHne63/PaperFramework](https://github.com/intsystems/Stepanov-BS-Thesis.git
-cd code
+git clone https://github.com/intsystems/Stepanov-BS-Thesis.git
+cd Stepanov-BS-Thesis/code
 
 conda create --name aug_model python=3.10
 conda activate aug_model
 
 pip install -r requirements.txt
+mkdir -p "AugModel/models/AlphaCLIP/"
+mkdir -p "AugModel/models/checkpoints/"
 cp -r src/alpha-clip/* "AugModel/models/AlphaCLIP/"
 ```
 
